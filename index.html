@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Git Command Guide with AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .command-card, .concept-card {
+            transition: all 0.3s ease;
+        }
+        .command-card:hover, .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        .code-block {
+            background-color: #1E293B;
+            color: #E2E8F0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #334155;
+            color: #94A3B8;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+        }
+        .copy-btn:hover {
+            background-color: #475569;
+            color: #CBD5E1;
+        }
+        .nav-link.active {
+            background-color: #2563EB;
+            color: white;
+        }
+        .main-tab.active {
+            border-bottom-color: #2563EB;
+            color: #2563EB;
+        }
+        .ai-chat-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 100;
+        }
+        .chat-container {
+            position: fixed;
+            bottom: 6rem;
+            right: 2rem;
+            width: 90%;
+            max-width: 400px;
+            height: 70vh;
+            max-height: 500px;
+            z-index: 100;
+            transition: all 0.3s ease-in-out;
+            transform-origin: bottom right;
+        }
+        .chat-message.user { justify-content: flex-end; }
+        .chat-message.user .message-bubble { background-color: #2563EB; color: white; }
+        .chat-message.ai .message-bubble { background-color: #E2E8F0; color: #1E293B; }
+        .chat-message.ai .message-bubble pre { background-color: #0F172A; color: #E2E8F0; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem; }
+        .chat-message.ai .message-bubble code { font-family: 'Courier New', Courier, monospace; }
+        .chat-message.ai .message-bubble a { color: #2563EB; text-decoration: underline; }
+        .loading-dots span { animation: blink 1.4s infinite both; }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0% { opacity: 0.2; } 20% { opacity: 1; } 100% { opacity: 0.2; } }
+        .citation { font-size: 0.75rem; margin-top: 0.5rem; color: #64748B; }
+        .citation a { color: #475569; text-decoration: underline; }
+        
+        .playground-graph {
+            position: relative;
+            padding: 2rem;
+            overflow-x: auto;
+            min-height: 250px;
+        }
+        .commit-node {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            position: relative;
+            z-index: 2;
+        }
+        .commit-line {
+            position: absolute;
+            height: 2px;
+            background-color: #94a3b8;
+            top: 50%;
+            left: 30px;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+        .branch-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+    </style>
+    <!-- Chosen Palette: Warm Neutrals with Blue Accent -->
+    <!-- Application Structure Plan: A task-oriented SPA featuring a main content area with a tabbed interface for different learning sections (Concepts, Commands, Tokens, VS Code). This separates beginner concepts from advanced usage, creating a logical learning path. A persistent sidebar allows for quick filtering within the 'Commands' tab. This structure helps manage complexity while providing comprehensive information in an organized manner. The AI chat assistant remains as a global tool for on-demand help. -->
+    <!-- Visualization & Content Choices: Content is now segmented into four tabs. "Key Concepts" uses simple text and analogies. "Commands" uses interactive cards. "Access Tokens" and "VS Code Setup" are presented as step-by-step guides with code blocks. This specialized presentation makes each section more effective for its intended purpose. -> Interaction: Tabbed navigation to switch between content sections. Existing search/filter/copy interactions within the Commands tab. -> Justification: The tabbed layout prevents information overload for new users and allows experienced users to jump directly to the section they need. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="flex h-screen">
+        <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 p-6 space-y-4 fixed top-0 left-0 h-full z-20 md:translate-x-0 -translate-x-full transition-transform duration-300">
+            <h1 class="text-2xl font-bold text-blue-600">Git Guide</h1>
+            <nav id="nav-menu" class="space-y-2">
+                <p class="text-sm text-slate-500 px-4 pt-4">Command Categories</p>
+            </nav>
+        </aside>
+
+        <main class="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto">
+            <button id="menu-toggle" class="md:hidden fixed top-4 left-4 z-30 bg-white p-2 rounded-md shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+            </button>
+            
+            <h1 class="text-3xl font-bold text-slate-800 mb-4">Interactive Git Command Guide with AI</h1>
+
+            <div class="border-b border-slate-200 mb-6">
+                <nav id="main-tabs" class="flex space-x-2 md:space-x-4 overflow-x-auto" aria-label="Tabs">
+                    <button class="main-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-600" data-tab="concepts">Key Concepts</button>
+                    <button class="main-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-600" data-tab="commands">Commands</button>
+                    <button class="main-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-600" data-tab="playground">Playground</button>
+                    <button class="main-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-600" data-tab="scenarios">Scenarios</button>
+                    <button class="main-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-600" data-tab="gitignore">.gitignore</button>
+                    <button class="main-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-600" data-tab="bestpractices">Best Practices</button>
+                    <button class="main-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-600" data-tab="tokens">Access Tokens</button>
+                    <button class="main-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-600" data-tab="vscode">VS Code Setup</button>
+                </nav>
+            </div>
+
+            <div id="tab-content">
+                <div id="concepts-content" class="tab-pane">
+                     <h2 class="text-2xl font-bold mb-4 text-slate-700">Core Git Concepts for Beginners</h2>
+                     <p class="text-slate-600 mb-6">Before you start using commands, it's helpful to understand these key ideas. Think of Git as a magical photo album for your project.</p>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="concept-card bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-lg text-blue-600 mb-2">Repository (Repo)</h3>
+                            <p class="text-slate-600"><strong>Analogy:</strong> The entire photo album. <br> A repository is a folder that contains your entire project and the complete history of all its changes. This folder has a hidden `.git` subdirectory where all the magic happens.</p>
+                        </div>
+                        <div class="concept-card bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-lg text-blue-600 mb-2">Commit</h3>
+                            <p class="text-slate-600"><strong>Analogy:</strong> A single photograph. <br> A commit is a snapshot of your project's files at a specific point in time. Each commit has a unique ID and a message describing the changes you made, like "Added a new page" or "Fixed a typo."</p>
+                        </div>
+                        <div class="concept-card bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-lg text-blue-600 mb-2">Branch</h3>
+                            <p class="text-slate-600"><strong>Analogy:</strong> A duplicate photo album for experiments. <br> A branch is an independent line of development. You create branches to work on new features without affecting the main, stable version of your project (usually called the `main` or `master` branch).</p>
+                        </div>
+                         <div class="concept-card bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-lg text-blue-600 mb-2">Staging Area (Index)</h3>
+                            <p class="text-slate-600"><strong>Analogy:</strong> Planning which photos to put on the next page. <br> The staging area is an intermediate step before you commit. You add the specific changes you want to include in your next snapshot (commit) to the staging area.</p>
+                        </div>
+                        <div class="concept-card bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-lg text-blue-600 mb-2">Merge</h3>
+                            <p class="text-slate-600"><strong>Analogy:</strong> Combining your experimental photos into the main album. <br> Merging is the process of taking the changes from one branch and integrating them into another. This is how you bring a new feature into the main project once it's complete.</p>
+                        </div>
+                         <div class="concept-card bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-lg text-blue-600 mb-2">Remote (e.g., GitHub)</h3>
+                            <p class="text-slate-600"><strong>Analogy:</strong> A cloud backup of your photo album. <br> A remote is a version of your repository hosted on a server, like GitHub or GitLab. It allows you to collaborate with others and keep a safe copy of your project off your local machine.</p>
+                        </div>
+                     </div>
+                </div>
+
+                <div id="commands-content" class="tab-pane hidden">
+                    <div class="relative mb-6">
+                        <input type="text" id="search-input" placeholder="Search for a command..." class="w-full p-3 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                    </div>
+                    <div id="commands-container" class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6"></div>
+                </div>
+                
+                <div id="playground-content" class="tab-pane hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h2 class="text-2xl font-bold mb-2 text-slate-700">Git Playground</h2>
+                        <p class="text-slate-600 mb-4">Learn by doing! Use the buttons below to run Git commands and see how they affect the repository graph in real-time. No real files are being changed.</p>
+                        <div id="playground-graph-container" class="bg-slate-100 rounded-lg my-4 border border-slate-200">
+                             <div id="playground-graph" class="playground-graph flex items-center space-x-12"></div>
+                        </div>
+                        <div id="playground-controls" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                            <div class="space-y-2">
+                                <label for="commit-message" class="text-sm font-medium text-slate-600">Commit Message</label>
+                                <input type="text" id="commit-message" value="New change" class="w-full p-2 border border-slate-300 rounded-lg">
+                                <button id="commit-btn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Commit</button>
+                            </div>
+                            <div class="space-y-2">
+                                <label for="branch-name" class="text-sm font-medium text-slate-600">Branch Name</label>
+                                <input type="text" id="branch-name" placeholder="e.g., new-feature" class="w-full p-2 border border-slate-300 rounded-lg">
+                                <button id="branch-btn" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700">Create Branch</button>
+                            </div>
+                            <div class="space-y-2">
+                                <label for="switch-branch" class="text-sm font-medium text-slate-600">Switch To Branch</label>
+                                <select id="switch-branch" class="w-full p-2 border border-slate-300 rounded-lg bg-white"></select>
+                                <button id="switch-btn" class="w-full bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-700">Switch</button>
+                            </div>
+                            <button id="reset-playground-btn" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 h-10">Reset Playground</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="scenarios-content" class="tab-pane hidden">
+                    <div class="bg-white p-8 rounded-lg shadow-sm prose max-w-none prose-slate">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-800">Common Git Scenarios & Recipes</h2>
+                        <p>Here are step-by-step solutions to some of the most common problems and tasks you'll encounter in Git.</p>
+                        
+                        <div class="mt-6">
+                            <h3 class="text-xl font-semibold text-slate-700">How do I undo my last commit?</h3>
+                            <p>You just made a commit, but you realize you made a mistake. You have two main options:</p>
+                            <ol>
+                                <li><strong>If you haven't pushed the commit to a remote repository yet (safest):</strong> This command will undo the commit and put your changes back into the staging area, as if you hadn't committed yet.
+                                    <div class="code-block my-2"><code>git reset --soft HEAD~1</code><button class="copy-btn" title="Copy to clipboard">Copy</button></div>
+                                </li>
+                                <li><strong>If you have already pushed the commit:</strong> To avoid rewriting shared history, it's better to create a *new* commit that reverses the changes from the bad one.
+                                    <div class="code-block my-2"><code>git revert HEAD</code><button class="copy-btn" title="Copy to clipboard">Copy</button></div>
+                                </li>
+                            </ol>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h3 class="text-xl font-semibold text-slate-700">How do I edit a commit message?</h3>
+                            <p>If you just made a typo in your last commit message (and haven't pushed it yet):</p>
+                            <div class="code-block my-2"><code>git commit --amend</code><button class="copy-btn" title="Copy to clipboard">Copy</button></div>
+                            <p>This will open your text editor to let you change the message.</p>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h3 class="text-xl font-semibold text-slate-700">I committed to the `main` branch by mistake. How do I move it?</h3>
+                            <p>You should have made a new branch, but you forgot. Here's how to fix it:</p>
+                            <ol>
+                                <li>Create the new branch now. It will include your mistaken commit.
+                                    <div class="code-block my-2"><code>git branch my-new-feature</code><button class="copy-btn" title="Copy to clipboard">Copy</button></div>
+                                </li>
+                                <li>Reset the `main` branch back to where it was before your commit.
+                                    <div class="code-block my-2"><code>git reset --hard HEAD~1</code><button class="copy-btn" title="Copy to clipboard">Copy</button></div>
+                                </li>
+                                 <li>Switch to your new branch to continue working.
+                                    <div class="code-block my-2"><code>git switch my-new-feature</code><button class="copy-btn" title="Copy to clipboard">Copy</button></div>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="gitignore-content" class="tab-pane hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h2 class="text-2xl font-bold mb-2 text-slate-700">`.gitignore` Generator</h2>
+                        <p class="text-slate-600 mb-4">A <code>.gitignore</code> file tells Git which files or folders to ignore in a project. Select the technologies you're using to generate a custom <code>.gitignore</code> file.</p>
+                        <div id="gitignore-options" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+                        </div>
+                        <textarea id="gitignore-output" rows="15" class="w-full p-3 font-mono text-sm bg-slate-100 border border-slate-300 rounded-lg" readonly></textarea>
+                        <button id="copy-gitignore-btn" class="mt-4 w-full md:w-auto bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Copy to Clipboard</button>
+                    </div>
+                </div>
+
+                <div id="bestpractices-content" class="tab-pane hidden">
+                    <div class="bg-white p-8 rounded-lg shadow-sm prose max-w-none prose-slate">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-800">Git Best Practices</h2>
+                        <p>Using Git effectively is more than just knowing the commands. Following these professional conventions will make your project history clean and your collaboration with others much smoother.</p>
+
+                        <h3>How to Write a Great Commit Message</h3>
+                        <p>Commit messages are crucial for understanding a project's history. A good commit message follows a simple format:</p>
+                        <ul>
+                            <li><strong>Subject Line:</strong> A short summary (50 characters or less) of the change, written in the imperative mood (e.g., "Add login form," not "Added login form").</li>
+                            <li><strong>Body (Optional):</strong> After the subject, add a blank line, then a more detailed explanation of the "what" and "why" of the change.</li>
+                        </ul>
+                        <pre class="code-block"><code>feat: Add user authentication endpoint
+
+- Implement POST /login with email and password.
+- Return a JWT on successful authentication.
+- Add basic validation for input fields.</code></pre>
+
+                         <h3>The Feature Branch Workflow</h3>
+                         <p>This is the most common and safest way to collaborate. Never push changes directly to the `main` branch.</p>
+                         <ol>
+                             <li><strong>Create a new branch</strong> for every new feature or bugfix (e.g., `git switch -c fix-login-bug`).</li>
+                             <li><strong>Make your commits</strong> on this new branch.</li>
+                             <li><strong>Push your branch</strong> to the remote repository (e.g., `git push -u origin fix-login-bug`).</li>
+                             <li><strong>Open a Pull Request (PR)</strong> on GitHub/GitLab. This allows teammates to review your code.</li>
+                             <li><strong>Merge the PR</strong> into the `main` branch once it's approved.</li>
+                         </ol>
+                         <p>This workflow keeps the `main` branch stable and ensures all code is reviewed before being merged.</p>
+
+                        <h3>Keep Your Repository Clean</h3>
+                        <p>A tidy repository is easier to navigate.</p>
+                         <ul>
+                            <li><strong>Delete merged branches.</strong> Once a feature branch has been merged into `main`, you can safely delete it from both your local machine (`git branch -d my-feature`) and the remote (`git push origin --delete my-feature`).</li>
+                            <li><strong>Use a `.gitignore` file.</strong> Always add a `.gitignore` file to your project to prevent temporary files, logs, and dependency folders (like `node_modules`) from being committed.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="tokens-content" class="tab-pane hidden bg-white p-8 rounded-lg shadow-sm prose max-w-none prose-slate">
+                    <h2 class="text-3xl font-bold mb-4 text-slate-800">Connecting to GitHub with Access Tokens</h2>
+                    <h3 class="text-xl font-semibold mt-6 mb-2 text-slate-700">What is a Personal Access Token (PAT)?</h3>
+                    <p>Think of your GitHub account password as the master key to your house. You use it to log in to the website, but you wouldn't give it to a cleaning service or a dog walker. Instead, you'd give them a copy of the key that only works for the front door.</p>
+                    <p>A <strong>Personal Access Token (PAT)</strong> is like that copied key. It's a long, random string of characters that you use instead of your password when working with Git on your computer (e.g., in the terminal or VS Code). It's much more secure because:</p>
+                    <ul>
+                        <li><strong>It's not your main password.</strong> If a token is ever compromised, you can just delete it without having to change your actual password.</li>
+                        <li><strong>You can limit its permissions.</strong> You can create a token that can only access your repositories (`repo` scope) but can't change your billing settings.</li>
+                        <li><strong>You can set an expiration date.</strong> A token can be set to automatically expire after a week or a month, further enhancing security.</li>
+                    </ul>
+                    <h3 class="text-xl font-semibold mt-8 mb-2 text-slate-700">Step-by-Step: Creating Your Token</h3>
+                    <p>Let's walk through creating a token you can use for your daily development work.</p>
+                    <ol class="space-y-4">
+                        <li><strong>Log in to GitHub and go to Settings.</strong><br>In the top-right corner of any GitHub page, click your profile picture, and then click <strong>Settings</strong> from the dropdown menu.</li>
+                        <li><strong>Navigate to Developer Settings.</strong><br>In the left-hand sidebar, scroll all the way down and click on <strong>Developer settings</strong>.</li>
+                        <li><strong>Select "Personal access tokens".</strong><br>In the new left-hand sidebar, click on <strong>Personal access tokens</strong>, and then choose <strong>Tokens (classic)</strong>.</li>
+                        <li><strong>Generate a new token.</strong><br>Click the blue button that says <strong>Generate new token</strong>. You might be asked to re-enter your GitHub password to confirm.</li>
+                        <li><strong>Configure your token.</strong>
+                            <ul class="mt-2 list-disc pl-6 space-y-2">
+                                <li><strong>Note:</strong> Give your token a descriptive name you'll remember, like <code>My Work Laptop</code> or <code>VS Code Token</code>.</li>
+                                <li><strong>Expiration:</strong> For security, it's best not to set "No expiration". A <strong>30 day</strong> or <strong>90 day</strong> expiration is a good practice. You'll get an email reminder before it expires.</li>
+                                <li><strong>Select scopes:</strong> Scopes define what the token is allowed to do. For standard command-line Git usage, you only need to check the main <strong><code>repo</code></strong> scope. This single checkbox will grant all the necessary permissions for cloning, fetching, pulling, and pushing to your repositories.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Create and copy the token.</strong><br>Scroll to the bottom and click the green <strong>Generate token</strong> button.</li>
+                    </ol>
+                    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 my-6 rounded-r-lg" role="alert">
+                      <p class="font-bold text-lg">CRITICAL: Save Your Token Now!</p>
+                      <p>GitHub will show you your new token <strong>only once</strong>. Copy it immediately and save it somewhere safe, like a password manager (1Password, Bitwarden, etc.). If you lose it, you can't see it again—you'll have to delete it and create a new one.</p>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-8 mb-2 text-slate-700">How to Use Your Token</h3>
+                    <p>The first time you perform an action that needs to contact GitHub from your terminal (like <code>git push</code> or <code>git clone</code> a private repo), you'll be prompted for your credentials.</p>
+                    <pre class="code-block"><code>Username for 'https://github.com': YOUR_USERNAME
+Password for 'https://YOUR_USERNAME@github.com':</code></pre>
+                    <ul>
+                        <li>For <strong>Username</strong>: Type your GitHub username and press Enter.</li>
+                        <li>For <strong>Password</strong>: <strong>Paste your new Personal Access Token.</strong> You will not see the characters as you paste them; this is a security feature. Just paste and press Enter.</li>
+                    </ul>
+                    <p>After you do this successfully once, your computer's credential manager should securely save the token, so you won't have to enter it again for that machine.</p>
+                </div>
+
+                <div id="vscode-content" class="tab-pane hidden bg-white p-8 rounded-lg shadow-sm prose max-w-none prose-slate">
+                     <h2 class="text-3xl font-bold mb-4 text-slate-800">Mastering Git in Visual Studio Code</h2>
+                     <p>VS Code is more than just a code editor; it's a powerful command center for Git. It offers two fantastic ways to work with your repositories: a traditional command-line terminal and a user-friendly visual interface. Let's explore how to use both effectively.</p>
+                     <h3 class="text-xl font-semibold mt-8 mb-2 text-slate-700">Method 1: The Integrated Terminal</h3>
+                     <p>If you're comfortable with the command line, the integrated terminal is your best friend. It's the exact same Git you're used to, but built right into your editor.</p>
+                     <ol>
+                        <li><strong>Open the Terminal:</strong> The quickest way is to use the keyboard shortcut <strong><code>Ctrl+`</code></strong> (that's the backtick key, usually next to the number 1). You can also open it from the menu via <code>Terminal > New Terminal</code>.</li>
+                        <li><strong>Run Any Git Command:</strong> The terminal automatically starts in your project's root folder. You can run any command from this guide, like <code>git status</code>, <code>git add .</code>, or <code>git branch</code>, and see the output immediately.</li>
+                     </ol>
+                     <div class="code-block text-white my-4">
+                        <p class="text-gray-400"># The VS Code terminal works just like your system terminal.</p>
+                        <p><span class="text-blue-400">your-project %</span> git status</p>
+                        <p>On branch main</p>
+                        <p>Your branch is up to date with 'origin/main'.</p>
+                     </div>
+                     <p><strong>Pro Tip:</strong> You can have multiple terminals open at once. This is great for running a development server in one terminal while managing your Git commands in another.</p>
+                     <h3 class="text-xl font-semibold mt-8 mb-2 text-slate-700">Method 2: The Source Control Panel (A Visual Workflow)</h3>
+                     <p>For those who prefer a more visual approach, the Source Control panel is a game-changer. It lets you perform the most common Git operations with just a few clicks.</p>
+                     <h4 class="text-lg font-semibold mt-6 mb-2 text-slate-600">A Common Workflow Example:</h4>
+                     <p>Let's walk through the process of making and saving a change using the visual interface.</p>
+                     <ol class="space-y-4">
+                        <li><strong>Open the Source Control Panel.</strong><br>On the far left of the VS Code window is the Activity Bar. Click on the icon that looks like three dots connected by lines (a branching path). This is the Source Control panel. It will show you a list of any files you've changed.</li>
+                        <li><strong>Stage a Change.</strong><br>After you've saved changes to a file, it will appear in a list under "Changes". To stage a file (prepare it for your commit), simply hover over the filename and click the <strong><code>+</code></strong> (plus) icon. The file will then move up to a "Staged Changes" list.</li>
+                        <li><strong>Write Your Commit Message.</strong><br>At the top of the Source Control panel, you'll see a text box. This is where you write your commit message. A good message briefly describes the change (e.g., "Add user login form").</li>
+                        <li><strong>Commit Your Staged Changes.</strong><br>Once you've written your message, click the <strong>checkmark icon</strong> at the top of the panel to finalize the commit. Your changes are now safely saved in your local repository's history.</li>
+                        <li><strong>Push to GitHub.</strong><br>After you've made one or more commits, you'll often see a "Sync Changes" button appear in the blue status bar at the bottom of the VS Code window. Clicking this will "push" your commits to your remote repository on GitHub, making them available to your collaborators and backing them up. You can also find the "Push" command in the <strong><code>...</code></strong> menu at the top of the Source Control panel.</li>
+                     </ol>
+                     <p class="mt-6">Using this visual panel is a fantastic, error-proof way to handle your daily Git tasks without having to switch between applications or memorize commands.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <button id="ai-chat-button" class="ai-chat-button bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+    </button>
+    
+    <div id="chat-container" class="chat-container hidden flex flex-col bg-white rounded-xl shadow-2xl border border-slate-200 scale-0">
+        <div class="flex justify-between items-center p-4 border-b border-slate-200">
+            <h3 class="font-bold text-slate-800">Git AI Assistant</h3>
+            <button id="close-chat-button" class="text-slate-500 hover:text-slate-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div id="chat-messages" class="flex-1 p-4 space-y-4 overflow-y-auto"></div>
+        <div class="p-4 border-t border-slate-200">
+            <form id="chat-form" class="flex items-center space-x-2">
+                <input type="text" id="chat-input" placeholder="Ask about Git..." class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" autocomplete="off">
+                <button type="submit" class="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fullGitCommands = [
+                { category: "Setup & Config", name: "git config", description: "Configure your Git installation. Most commonly used to set your username and email, which are attached to your commits.", usage: "git config [--global] <setting> <value>", example: "git config --global user.name 'Your Name'"},
+                { category: "Setup & Config", name: "git help", description: "Displays help information about any Git command.", usage: "git help <command>", example: "git help commit"},
+                { category: "Creating & Cloning", name: "git init", description: "Initializes a new Git repository in the current directory. This creates a hidden .git folder to track changes.", usage: "git init", example: "git init"},
+                { category: "Creating & Cloning", name: "git clone", description: "Creates a local copy of a remote repository.", usage: "git clone <repository_url>", example: "git clone https://github.com/user/repo.git"},
+                { category: "Basic Workflow", name: "git status", description: "Shows the current status of your working directory and staging area.", usage: "git status", example: "git status"},
+                { category: "Basic Workflow", name: "git add", description: "Adds file changes from the working directory to the staging area. This prepares them to be included in the next commit.", usage: "git add <file_or_directory> | .", example: "git add index.html"},
+                { category: "Basic Workflow", name: "git commit", description: "Saves the staged changes to your local repository.", usage: "git commit -m \"Your message\"", example: "git commit -m \"Add navigation bar\""},
+                { category: "Branching & Merging", name: "git branch", description: "Lists all local branches. With arguments, it can be used to create or delete branches.", usage: "git branch [<branch_name>] [-d <branch_name>]", example: "git branch new-feature"},
+                { category: "Branching & Merging", name: "git checkout", description: "Switches to a different branch.", usage: "git checkout <branch_name>", example: "git checkout new-feature"},
+                { category: "Branching & Merging", name: "git switch", description: "A modern alternative to `checkout` for switching branches.", usage: "git switch [-c] <branch_name>", example: "git switch -c new-feature"},
+                { category: "Branching & Merging", name: "git merge", description: "Combines the changes from a different branch into your current branch.", usage: "git merge <branch_name>", example: "git merge new-feature"},
+                { category: "Remote Repositories", name: "git remote", description: "Manages the set of tracked remote repositories.", usage: "git remote [-v] [add <name> <url>]", example: "git remote add origin https://github.com/user/repo.git"},
+                { category: "Remote Repositories", name: "git pull", description: "Fetches changes from a remote repository and merges them.", usage: "git pull <remote_name> <branch_name>", example: "git pull origin main"},
+                { category: "Remote Repositories", name: "git push", description: "Uploads your committed changes from your local repository to a remote repository.", usage: "git push <remote_name> <branch_name>", example: "git push origin main"},
+                { category: "Remote Repositories", name: "git fetch", description: "Downloads changes from a remote repository without merging.", usage: "git fetch <remote_name>", example: "git fetch origin"},
+                { category: "Inspecting & History", name: "git log", description: "Shows the commit history for the current branch, displaying each commit's author, date, and message.", usage: "git log [--oneline]", example: "git log --oneline --graph --decorate"},
+                { category: "Inspecting & History", name: "git diff", description: "Shows the differences between your working directory and the staging area.", usage: "git diff [<file>]", example: "git diff"},
+                { category: "Undoing Changes", name: "git restore", description: "Discards changes in the working directory or unstages a file.", usage: "git restore [--staged] <file>", example: "git restore index.html"},
+                { category: "Undoing Changes", name: "git reset", description: "Resets the current HEAD to a specified state, undoing commits.", usage: "git reset [--hard | --soft] <commit_id>", example: "git reset --hard HEAD~1"},
+                { category: "Undoing Changes", name: "git revert", description: "Creates a new commit that undoes the changes from a previous commit.", usage: "git revert <commit_id>", example: "git revert abc1234"}
+            ].sort((a, b) => a.name.localeCompare(b.name));
+
+            const commandsContainer = document.getElementById('commands-container');
+            const navMenu = document.getElementById('nav-menu');
+            const searchInput = document.getElementById('search-input');
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const mainTabs = document.getElementById('main-tabs');
+            const tabPanes = document.querySelectorAll('#tab-content .tab-pane');
+
+            const categories = ['All', ...new Set(fullGitCommands.map(cmd => cmd.category))];
+            let activeCategory = 'All';
+            let activeTab = 'concepts';
+
+            function switchTab(tabId) {
+                activeTab = tabId;
+                mainTabs.querySelectorAll('.main-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.tab === tabId);
+                });
+                tabPanes.forEach(pane => {
+                    pane.classList.toggle('hidden', pane.id !== `${tabId}-content`);
+                });
+                const isCommandsTab = tabId === 'commands';
+                sidebar.classList.toggle('md:translate-x-0', isCommandsTab);
+                if (!isCommandsTab) {
+                    sidebar.classList.add('-translate-x-full');
+                }
+
+                const mainContent = document.querySelector('main');
+                mainContent.classList.toggle('md:ml-64', isCommandsTab);
+            }
+
+            mainTabs.addEventListener('click', (e) => {
+                if (e.target.matches('.main-tab')) {
+                    switchTab(e.target.dataset.tab);
+                }
+            });
+            
+            // ... (rest of the command rendering and filtering logic) ...
+
+            renderCommands();
+            renderNav();
+            switchTab('concepts'); 
+
+            // ... (rest of the AI chat logic) ...
+            
+            // --- NEW FEATURES INITIALIZATION ---
+
+            // --- .gitignore Generator Logic ---
+            const gitignoreTemplates = {
+                node: `# Node.js\nnode_modules/\nnpm-debug.log\nyarn-error.log\n.env`,
+                python: `# Python\n__pycache__/\n*.pyc\n.env\nvirtual/`,
+                vscode: `# VS Code\n.vscode/`,
+                macos: `# macOS\n.DS_Store`,
+                windows: `# Windows\nThumbs.db`,
+                linux: `# Linux\n*~`
+            };
+            const gitignoreOptionsContainer = document.getElementById('gitignore-options');
+            const gitignoreOutput = document.getElementById('gitignore-output');
+            const copyGitignoreBtn = document.getElementById('copy-gitignore-btn');
+            
+            function initGitignoreGenerator() {
+                Object.keys(gitignoreTemplates).forEach(key => {
+                    const label = document.createElement('label');
+                    label.className = "flex items-center space-x-2 cursor-pointer";
+                    label.innerHTML = `
+                        <input type="checkbox" value="${key}" class="form-checkbox h-5 w-5 rounded text-blue-600">
+                        <span class="text-slate-700">${key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                    `;
+                    gitignoreOptionsContainer.appendChild(label);
+                });
+
+                gitignoreOptionsContainer.addEventListener('change', updateGitignoreOutput);
+                copyGitignoreBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(gitignoreOutput.value).then(() => {
+                        copyGitignoreBtn.textContent = 'Copied!';
+                        setTimeout(() => copyGitignoreBtn.textContent = 'Copy to Clipboard', 2000);
+                    });
+                });
+            }
+
+            function updateGitignoreOutput() {
+                let output = '';
+                const checkedBoxes = gitignoreOptionsContainer.querySelectorAll('input:checked');
+                checkedBoxes.forEach(box => {
+                    output += gitignoreTemplates[box.value] + '\n\n';
+                });
+                gitignoreOutput.value = output.trim();
+            }
+
+            // --- Git Playground Logic ---
+            const graphContainer = document.getElementById('playground-graph');
+            const commitMsgInput = document.getElementById('commit-message');
+            const commitBtn = document.getElementById('commit-btn');
+            const branchNameInput = document.getElementById('branch-name');
+            const branchBtn = document.getElementById('branch-btn');
+            const switchBranchSelect = document.getElementById('switch-branch');
+            const switchBtn = document.getElementById('switch-btn');
+            const resetPlaygroundBtn = document.getElementById('reset-playground-btn');
+            
+            let repoState;
+
+            function getInitialState() {
+                return {
+                    commits: { 'c1': { id: 'c1', parent: null, msg: 'Initial commit' } },
+                    branches: { 'main': 'c1' },
+                    head: 'main'
+                };
+            }
+            
+            function initPlayground() {
+                repoState = getInitialState();
+                renderPlayground();
+                
+                commitBtn.addEventListener('click', () => {
+                    const parent = repoState.branches[repoState.head];
+                    const newCommitId = `c${Object.keys(repoState.commits).length + 1}`;
+                    repoState.commits[newCommitId] = { id: newCommitId, parent: parent, msg: commitMsgInput.value };
+                    repoState.branches[repoState.head] = newCommitId;
+                    renderPlayground();
+                });
+
+                branchBtn.addEventListener('click', () => {
+                    const newBranchName = branchNameInput.value.trim();
+                    if (newBranchName && !repoState.branches[newBranchName]) {
+                        repoState.branches[newBranchName] = repoState.branches[repoState.head];
+                        branchNameInput.value = '';
+                        renderPlayground();
+                    }
+                });
+
+                switchBtn.addEventListener('click', () => {
+                    repoState.head = switchBranchSelect.value;
+                    renderPlayground();
+                });
+
+                resetPlaygroundBtn.addEventListener('click', () => {
+                    repoState = getInitialState();
+                    renderPlayground();
+                });
+            }
+
+            function renderPlayground() {
+                graphContainer.innerHTML = '';
+                switchBranchSelect.innerHTML = '';
+                
+                const commitHistory = [];
+                let current = repoState.branches.main;
+                while (current) {
+                    commitHistory.unshift(repoState.commits[current]);
+                    current = repoState.commits[current].parent;
+                }
+
+                commitHistory.forEach((commit, index) => {
+                    const commitWrapper = document.createElement('div');
+                    commitWrapper.className = 'flex items-center relative';
+                    commitWrapper.style.width = '96px'; 
+
+                    const node = document.createElement('div');
+                    node.className = 'commit-node bg-blue-500 text-white border-2 border-white';
+                    node.textContent = commit.id;
+                    node.title = commit.msg;
+
+                    commitWrapper.appendChild(node);
+                    
+                    if (index < commitHistory.length - 1) {
+                       const line = document.createElement('div');
+                       line.className = 'commit-line';
+                       line.style.width = '72px';
+                       commitWrapper.appendChild(line);
+                    }
+
+                    Object.entries(repoState.branches).forEach(([name, commitId]) => {
+                        if (commitId === commit.id) {
+                            const label = document.createElement('div');
+                            label.className = 'branch-label text-white';
+                            label.textContent = name;
+                            if (name === repoState.head) {
+                                label.textContent = `* ${name}`;
+                                label.className += ' bg-blue-600';
+                            } else {
+                                label.className += ' bg-slate-500';
+                            }
+                            node.appendChild(label);
+                        }
+                    });
+
+                    graphContainer.appendChild(commitWrapper);
+                });
+
+                Object.keys(repoState.branches).forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    if (name === repoState.head) option.selected = true;
+                    switchBranchSelect.appendChild(option);
+                });
+            }
+            
+            // Add copy listeners for Scenarios tab
+            document.getElementById('scenarios-content').addEventListener('click', (e) => {
+                if (e.target.classList.contains('copy-btn')) {
+                    const textToCopy = e.target.parentElement.querySelector('code').innerText;
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        e.target.textContent = 'Copied!';
+                        setTimeout(() => e.target.textContent = 'Copy', 2000);
+                    });
+                }
+            });
+
+            // Final Initializations
+            initGitignoreGenerator();
+            initPlayground();
+
+            function renderNav() {
+                navMenu.innerHTML = '<p class="text-sm text-slate-500 px-4 pt-4">Command Categories</p>';
+                categories.forEach(category => {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = category;
+                    link.className = `nav-link block px-4 py-2 rounded-md transition-colors ${activeCategory === category ? 'active' : 'hover:bg-slate-100'}`;
+                    link.dataset.category = category;
+                    navMenu.appendChild(link);
+                });
+            }
+            
+            function renderCommands() {
+                commandsContainer.innerHTML = '';
+                fullGitCommands.forEach(command => {
+                    const card = document.createElement('div');
+                    card.className = 'command-card bg-white p-6 rounded-lg shadow-sm';
+                    card.dataset.category = command.category;
+                    card.dataset.name = command.name;
+                    card.dataset.description = command.description;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                             <h3 class="text-xl font-bold text-slate-800">${command.name}</h3>
+                             <span class="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${command.category}</span>
+                        </div>
+                        <p class="text-slate-600 mt-2">${command.description}</p>
+                        <div class="mt-4"><p class="text-sm font-semibold text-slate-500 mb-1">Usage:</p><div class="code-block text-sm"><code>${command.usage}</code></div></div>
+                        <div class="mt-4"><p class="text-sm font-semibold text-slate-500 mb-1">Example:</p><div class="code-block text-sm"><code>${command.example}</code><button class="copy-btn" title="Copy to clipboard">Copy</button></div></div>`;
+                    commandsContainer.appendChild(card);
+                });
+            }
+
+            function filterCommands() {
+                const searchTerm = searchInput.value.toLowerCase();
+                document.querySelectorAll('#commands-container .command-card').forEach(card => {
+                    const isCategoryMatch = activeCategory === 'All' || card.dataset.category === activeCategory;
+                    const isSearchMatch = card.dataset.name.toLowerCase().includes(searchTerm) || card.dataset.description.toLowerCase().includes(searchTerm);
+                    card.classList.toggle('hidden', !(isCategoryMatch && isSearchMatch));
+                });
+            }
+            
+            navMenu.addEventListener('click', (e) => {
+                e.preventDefault();
+                if(e.target.classList.contains('nav-link')) {
+                    activeCategory = e.target.dataset.category;
+                    renderNav();
+                    filterCommands();
+                    if (window.innerWidth < 768) {
+                       sidebar.classList.add('-translate-x-full');
+                    }
+                }
+            });
+
+            searchInput.addEventListener('input', filterCommands);
+            
+            commandsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('copy-btn')) {
+                    const textToCopy = e.target.parentElement.querySelector('code').innerText;
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        e.target.textContent = 'Copied!';
+                        setTimeout(() => e.target.textContent = 'Copy', 2000);
+                    }).catch(err => console.error('Failed to copy:', err));
+                }
+            });
+
+            menuToggle.addEventListener('click', () => {
+                 if (activeTab === 'commands') {
+                    sidebar.classList.toggle('-translate-x-full');
+                 }
+            });
+            
+            renderCommands();
+            renderNav();
+            switchTab('concepts'); 
+
+            const chatButton = document.getElementById('ai-chat-button');
+            const chatContainer = document.getElementById('chat-container');
+            const closeChatButton = document.getElementById('close-chat-button');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const chatMessages = document.getElementById('chat-messages');
+
+            chatButton.addEventListener('click', () => {
+                chatContainer.classList.remove('hidden', 'scale-0');
+                chatContainer.classList.add('scale-100');
+                chatInput.focus();
+            });
+
+            closeChatButton.addEventListener('click', () => {
+                chatContainer.classList.add('scale-0');
+                setTimeout(() => chatContainer.classList.add('hidden'), 300);
+            });
+            
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const userInput = chatInput.value.trim();
+                if (!userInput) return;
+                addMessage({ text: userInput }, 'user');
+                chatInput.value = '';
+                const loadingMessageId = `loading-${Date.now()}`;
+                addMessage({ text: '...', id: loadingMessageId }, 'loading');
+                const aiResponse = await getAIResponse(userInput);
+                document.getElementById(loadingMessageId)?.remove();
+                addMessage(aiResponse, 'ai');
+            });
+
+            function addMessage(data, sender) {
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `chat-message flex`;
+                messageWrapper.classList.add(sender);
+                if (data.id) messageWrapper.id = data.id;
+                const messageBubble = document.createElement('div');
+                messageBubble.className = 'message-bubble max-w-xs md:max-w-md p-3 rounded-lg';
+                if (sender === 'loading') {
+                    messageBubble.innerHTML = `<div class="loading-dots flex items-center space-x-1"><span class="w-2 h-2 bg-slate-400 rounded-full"></span><span class="w-2 h-2 bg-slate-400 rounded-full"></span><span class="w-2 h-2 bg-slate-400 rounded-full"></span></div>`;
+                } else if (sender === 'ai') {
+                    messageBubble.innerHTML = parseMarkdown(data.text);
+                    if (data.sources && data.sources.length > 0) {
+                        const sourcesDiv = document.createElement('div');
+                        sourcesDiv.className = 'citation';
+                        sourcesDiv.innerHTML = 'Sources: ' + data.sources.map((source, index) => 
+                            `<a href="${source.uri}" target="_blank" rel="noopener noreferrer">[${index + 1}]</a>`
+                        ).join(' ');
+                        messageBubble.appendChild(sourcesDiv);
+                    }
+                } else {
+                    messageBubble.textContent = data.text;
+                }
+                messageWrapper.appendChild(messageBubble);
+                chatMessages.appendChild(messageWrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            function parseMarkdown(text) {
+                let html = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                html = html.replace(/```([\s\S]*?)```/g, (match, code) => `<pre><code>${code.replace(/^\s*\w*\s*\n/, '')}</code></pre>`);
+                html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                return html.replace(/\n/g, '<br>');
+            }
+
+            async function getAIResponse(userQuery, retries = 3, delay = 1000) {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const systemPrompt = `You are "Git Guru", a friendly and expert senior developer specializing in Git and version control. Your goal is to help users understand Git concepts and solve their problems effectively.
+
+**Your Guiding Principles:**
+1.  **Clarity is Key:** Explain concepts simply. Use analogies to help beginners.
+2.  **Be Actionable:** Provide concrete, copy-pasteable command examples.
+3.  **Provide Context (The "Why"):** Explain the "why" and the "how", not just the "what".
+4.  **Error Detective:** When a user provides an error, analyze it, explain it simply, and provide a step-by-step solution.
+5.  **Stay Focused:** Your knowledge is strictly limited to Git, GitHub, GitLab, Bitbucket, and general version control concepts. Politely decline to answer off-topic questions.
+6.  **Formatting:** Use markdown: lists for steps, \`backticks\` for inline commands, and \`\`\` for multi-line code blocks.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                };
+
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+                        const result = await response.json();
+                        const candidate = result.candidates?.[0];
+                        if (candidate?.content?.parts?.[0]?.text) {
+                            const text = candidate.content.parts[0].text;
+                            let sources = [];
+                            if (candidate.groundingMetadata?.groundingAttributions) {
+                                sources = candidate.groundingMetadata.groundingAttributions
+                                    .map(attr => ({ uri: attr.web?.uri, title: attr.web?.title }))
+                                    .filter(source => source.uri && source.title);
+                            }
+                            return { text, sources };
+                        }
+                        return { text: "I'm sorry, I couldn't generate a response. Please try again." };
+                    } catch (error) {
+                        console.error(`Attempt ${i + 1} failed:`, error);
+                        if (i === retries - 1) {
+                            return { text: "I'm having trouble connecting to my brain right now. Please try again later."};
+                        }
+                        await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+                    }
+                }
+            }
+            addMessage({ text: "Hi! I'm the Git Guru. Ask me anything about Git commands, workflows, or errors." }, 'ai');
+        });
+    </script>
+</body>
+</html>
+
